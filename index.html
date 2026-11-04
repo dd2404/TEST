@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CISEC Industry Collaboration Dashboard – Politeknik Balik Pulau</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #122040;
+    --navy-light: #1a3460;
+    --teal: #00b4b4;
+    --teal-light: #00d4d4;
+    --teal-dim: rgba(0,180,180,0.15);
+    --white: #ffffff;
+    --off-white: #f0f4f8;
+    --gray-100: #e8edf4;
+    --gray-200: #c8d3e0;
+    --gray-400: #8a99b0;
+    --gray-600: #4a5a72;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --sidebar-w: 240px;
+    --header-h: 64px;
+    --radius: 10px;
+    --shadow: 0 2px 16px rgba(10,22,40,0.13);
+    --shadow-lg: 0 8px 32px rgba(10,22,40,0.18);
+    --transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--off-white); color: var(--navy); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    position: fixed; inset: 0; background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+  }
+  .login-card {
+    background: white; border-radius: 16px; padding: 48px 40px; width: 420px; max-width: 95vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .logo-badge {
+    width: 72px; height: 72px; background: linear-gradient(135deg, var(--teal), var(--navy-light));
+    border-radius: 18px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 900; color: white; letter-spacing: -1px; margin-bottom: 12px;
+  }
+  .login-logo img { width: 200px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }
+  .login-logo h2 { font-size: 20px; font-weight: 700; color: var(--navy); }
+  .login-logo p { font-size: 13px; color: var(--gray-400); margin-top: 4px; }
+  .login-field { margin-bottom: 18px; }
+  .login-field label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; padding: 11px 14px; border: 2px solid var(--gray-100); border-radius: 8px;
+    font-size: 15px; outline: none; transition: var(--transition);
+  }
+  .login-field input:focus { border-color: var(--teal); }
+  .btn-login {
+    width: 100%; padding: 13px; background: linear-gradient(135deg, var(--teal), #008888);
+    color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: var(--transition); margin-top: 4px;
+  }
+  .btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
+  .login-hint { text-align: center; font-size: 12px; color: var(--gray-400); margin-top: 16px; }
+  #login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 8px; display: none; }
+
+  /* ── LAYOUT ── */
+  #app { display: none; }
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--navy); display: flex; flex-direction: column; z-index: 100;
+    transition: var(--transition);
+  }
+  .sidebar-header {
+    padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 12px; height: var(--header-h);
+  }
+  .sidebar-badge {
+    width: 38px; height: 38px; background: linear-gradient(135deg, var(--teal), #008888);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: white; flex-shrink: 0;
+  }
+  .sidebar-title { color: white; }
+  .sidebar-title h1 { font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .sidebar-title p { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group-label {
+    font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 12px 20px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    color: var(--gray-200); cursor: pointer; transition: var(--transition);
+    border-left: 3px solid transparent; font-size: 14px; font-weight: 500;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+  .nav-item.active { background: rgba(0,180,180,0.15); color: var(--teal-light); border-left-color: var(--teal); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer {
+    padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 34px; height: 34px; background: linear-gradient(135deg, var(--teal), #3b82f6);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .user-info { flex: 1; }
+  .user-info .name { font-size: 13px; color: white; font-weight: 600; }
+  .user-info .role { font-size: 11px; color: var(--gray-400); }
+  .btn-logout { background: none; border: none; color: var(--gray-400); cursor: pointer; font-size: 16px; transition: var(--transition); }
+  .btn-logout:hover { color: var(--danger); }
+  .topbar {
+    position: fixed; left: var(--sidebar-w); right: 0; top: 0; height: var(--header-h);
+    background: white; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center;
+    padding: 0 28px; gap: 16px; z-index: 50; box-shadow: 0 1px 8px rgba(10,22,40,0.06);
+  }
+  .topbar-title { flex: 1; }
+  .topbar-title h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
+  .topbar-title p { font-size: 12px; color: var(--gray-400); }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .main-content {
+    margin-left: var(--sidebar-w); margin-top: var(--header-h);
+    padding: 28px; min-height: calc(100vh - var(--header-h));
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-bottom: 28px; }
+  .kpi-card {
+    background: white; border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow);
+    border-left: 4px solid var(--teal); position: relative; overflow: hidden; transition: var(--transition);
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .kpi-card::after {
+    content: ''; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px;
+    border-radius: 50%; background: var(--teal-dim);
+  }
+  .kpi-card.navy { border-left-color: var(--navy-light); }
+  .kpi-card.navy::after { background: rgba(26,52,96,0.07); }
+  .kpi-card.success { border-left-color: var(--success); }
+  .kpi-card.success::after { background: rgba(16,185,129,0.07); }
+  .kpi-card.warning { border-left-color: var(--warning); }
+  .kpi-card.warning::after { background: rgba(245,158,11,0.07); }
+  .kpi-card.info { border-left-color: var(--info); }
+  .kpi-card.info::after { background: rgba(59,130,246,0.07); }
+  .kpi-label { font-size: 12px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 800; color: var(--navy); line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--gray-400); margin-top: 6px; }
+  .kpi-icon { position: absolute; right: 22px; top: 20px; font-size: 28px; opacity: 0.18; }
+
+  /* ── SECTION CARDS ── */
+  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 22px; }
+  .card-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--gray-100);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .card-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .card-body { padding: 22px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+
+  /* ── TABLES ── */
+  .table-wrapper { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { background: var(--off-white); color: var(--gray-600); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; padding: 11px 14px; text-align: left; border-bottom: 2px solid var(--gray-100); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--gray-100); transition: var(--transition); }
+  tbody tr:hover { background: rgba(0,180,180,0.04); }
+  tbody td { padding: 12px 14px; color: var(--navy); vertical-align: middle; }
+  tbody tr:last-child { border-bottom: none; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge-success { background: rgba(16,185,129,0.12); color: #059669; }
+  .badge-warning { background: rgba(245,158,11,0.12); color: #d97706; }
+  .badge-danger { background: rgba(239,68,68,0.12); color: #dc2626; }
+  .badge-info { background: rgba(59,130,246,0.12); color: #2563eb; }
+  .badge-teal { background: var(--teal-dim); color: #007a7a; }
+  .badge-navy { background: rgba(26,52,96,0.1); color: var(--navy-light); }
+
+  /* ── BUTTONS ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: var(--transition); text-decoration: none; }
+  .btn-primary { background: linear-gradient(135deg, var(--teal), #008080); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-secondary { background: var(--off-white); color: var(--navy); border: 1px solid var(--gray-200); }
+  .btn-secondary:hover { background: var(--gray-100); }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: white; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 7px; border-radius: 6px; }
+
+  /* ── SEARCH & FILTER BAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .search-box { position: relative; }
+  .search-box input { padding: 9px 14px 9px 36px; border: 1px solid var(--gray-200); border-radius: 7px; font-size: 14px; outline: none; width: 240px; transition: var(--transition); }
+  .search-box input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
+  .search-box::before { content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none; }
+  select.filter-select { padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: 7px; font-size: 14px; outline: none; background: white; cursor: pointer; }
+  select.filter-select:focus { border-color: var(--teal); }
+
+  /* ── MODAL ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,22,40,0.55); z-index: 500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 14px; width: 580px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { font-size: 17px; font-weight: 700; color: var(--navy); }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-400); transition: var(--transition); line-height: 1; }
+  .modal-close:hover { color: var(--danger); }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; gap: 10px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 13px; border: 1px solid var(--gray-200); border-radius: 7px;
+    font-size: 14px; outline: none; font-family: inherit; transition: var(--transition);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── PROGRESS BARS ── */
+  .progress-bar-wrap { background: var(--gray-100); border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal-light)); border-radius: 99px; transition: width 0.8s ease; }
+  .progress-bar.warning { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+  .progress-bar.danger { background: linear-gradient(90deg, var(--danger), #f87171); }
+
+  /* ── NOTIFICATION DOT ── */
+  .dot-live { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.2)} }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner { padding: 12px 18px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 14px; }
+  .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #92400e; }
+  .alert-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #991b1b; }
+  .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #065f46; }
+
+  /* ── STATS CHIP ── */
+  .chip-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .chip { padding: 7px 16px; background: white; border: 1px solid var(--gray-200); border-radius: 99px; font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+  .chip.active, .chip:hover { background: var(--teal); border-color: var(--teal); color: white; }
+
+  /* ── IOC CARD ── */
+  .ioc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .ioc-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; border-top: 4px solid var(--teal); transition: var(--transition); }
+  .ioc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .ioc-card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .ioc-card-title { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .ioc-card-company { font-size: 13px; color: var(--gray-400); margin-top: 2px; }
+  .ioc-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .ioc-meta span { font-size: 12px; color: var(--gray-600); }
+
+  /* ── REPORT PAGE ── */
+  .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .report-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; display: flex; flex-direction: column; gap: 12px; transition: var(--transition); }
+  .report-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .report-icon { font-size: 36px; }
+  .report-card h4 { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .report-card p { font-size: 13px; color: var(--gray-400); line-height: 1.5; }
+  .report-actions { display: flex; gap: 8px; margin-top: auto; }
+
+  /* ── TOAST ── */
+  #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9000; display: flex; flex-direction: column; gap: 10px; }
+  .toast { background: var(--navy); color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease; border-left: 4px solid var(--teal); min-width: 260px; }
+  .toast.success { border-left-color: var(--success); }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.warning { border-left-color: var(--warning); }
+  @keyframes slideIn { from{transform:translateX(120px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 99px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .topbar, .main-content { margin-left: 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .search-box input { width: 180px; }
+  }
+
+  /* chart canvas wrappers */
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap-sm { position: relative; height: 200px; }
+
+  /* Timeline */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 16px; padding-bottom: 20px; position: relative; }
+  .tl-item:not(:last-child)::before { content:''; position: absolute; left: 14px; top: 30px; bottom: 0; width: 2px; background: var(--gray-100); }
+  .tl-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--teal-dim); border: 2px solid var(--teal); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .tl-content h5 { font-size: 14px; font-weight: 600; color: var(--navy); }
+  .tl-content p { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+
+  /* empty state */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* expiry indicator */
+  .expiry-bar { height: 4px; border-radius: 99px; background: var(--gray-100); margin-top: 8px; overflow: hidden; }
+  .expiry-fill { height: 100%; border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<!-- ─── TOAST ─── -->
+<div id="toast-container"></div>
+
+<!-- ─── LOGIN ─── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="logo/logo-pbu-ori.png" alt="Politeknik Malaysia Balik Pulau">
+      <h2>CISEC Dashboard</h2>
+      <p>Politeknik Balik Pulau — Industry Collaboration</p>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" value="admin">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password" value="cisec2024">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign In to Dashboard</button>
+    <div id="login-error">❌ Invalid credentials. Try admin / cisec2024</div>
+    <p class="login-hint">Demo: admin / cisec2024</p>
+  </div>
+</div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="logo/logo-pbu-ori.png" alt="PBU Logo" style="height:36px;width:auto;filter:brightness(0) invert(1);flex-shrink:0;">
+      <div class="sidebar-title">
+        <h1>CISEC</h1>
+        <p>Industry Collab</p>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-group-label">Overview</div>
+      <a class="nav-item active" onclick="nav('overview')" href="#">
+        <span class="nav-icon">📊</span> Executive Overview
+      </a>
+      <div class="nav-group-label">Management</div>
+      <a class="nav-item" onclick="nav('partners')" href="#">
+        <span class="nav-icon">🏭</span> Industry Partners
+      </a>
+      <a class="nav-item" onclick="nav('moumoa')" href="#">
+        <span class="nav-icon">📋</span> MoU / MoA Tracker
+      </a>
+      <a class="nav-item" onclick="nav('activities')" href="#">
+        <span class="nav-icon">🤝</span> Collaboration Activities
+      </a>
+      <a class="nav-item" onclick="nav('ioc')" href="#">
+        <span class="nav-icon">🏗️</span> Industry on Campus
+      </a>
+      <div class="nav-group-label">Analytics</div>
+      <a class="nav-item" onclick="nav('kpi')" href="#">
+        <span class="nav-icon">📈</span> KPI & Impact Analytics
+      </a>
+      <div class="nav-group-label">System</div>
+      <a class="nav-item" onclick="nav('reports')" href="#">
+        <span class="nav-icon">📄</span> Reports & Export
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-avatar">AD</div>
+      <div class="user-info">
+        <div class="name">Admin CISEC</div>
+        <div class="role">System Administrator</div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Logout">⏻</button>
+    </div>
+  </nav>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="btn btn-secondary btn-icon" id="menu-toggle" onclick="toggleSidebar()" style="display:none;">☰</button>
+    <img src="logo/logo-pbu-ori.png" alt="PBU Logo" style="height:36px;width:auto;margin-right:4px;">
+    <div class="topbar-title">
+      <h2 id="topbar-title-text">Executive Overview</h2>
+      <p>CISEC Industry Collaboration System — PBU</p>
+    </div>
+    <div class="topbar-actions">
+      <span class="dot-live"></span>
+      <span style="font-size:13px;color:var(--gray-600);">Live</span>
+      <button class="btn btn-primary btn-sm" onclick="openImportModal()">⬆ Import</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+  <main class="main-content">
+
+    <!-- ──────────────────── OVERVIEW ──────────────────── -->
+    <section class="page active" id="page-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Industry Partners</div>
+          <div class="kpi-value" id="kpi-partners">—</div>
+          <div class="kpi-sub">Registered companies</div>
+          <span class="kpi-icon">🏭</span>
+        </div>
+        <div class="kpi-card navy">
+          <div class="kpi-label">Active MoU / MoA</div>
+          <div class="kpi-value" id="kpi-mou">—</div>
+          <div class="kpi-sub">Valid agreements</div>
+          <span class="kpi-icon">📋</span>
+        </div>
+        <div class="kpi-card success">
+          <div class="kpi-label">Programmes</div>
+          <div class="kpi-value" id="kpi-activities">—</div>
+          <div class="kpi-sub">Collaboration activities</div>
+          <span class="kpi-icon">🤝</span>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">Students Involved</div>
+          <div class="kpi-value" id="kpi-students">—</div>
+          <div class="kpi-sub">Across all programmes</div>
+          <span class="kpi-icon">🎓</span>
+        </div>
+        <div class="kpi-card info">
+          <div class="kpi-label">Industry Contributions</div>
+          <div class="kpi-value" id="kpi-contrib">—</div>
+          <div class="kpi-sub">RM received (2024)</div>
+          <span class="kpi-icon">💰</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>📅 MoU/MoA Expiry Alerts</h3></div>
+          <div class="card-body" id="expiry-alerts-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🕐 Recent Activities</h3></div>
+          <div class="card-body" id="recent-activities-list"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>📊 Partners by Sector</h3></div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="chart-sector"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>📈 Annual Collaboration Trend</h3></div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── PARTNERS ──────────────────── -->
+    <section class="page" id="page-partners">
+      <div class="card">
+        <div class="card-header">
+          <h3>🏭 Industry Partners Registry</h3>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" id="partner-search" placeholder="Search partners…" oninput="renderPartners()"></div>
+            <select class="filter-select" id="partner-sector-filter" onchange="renderPartners()">
+              <option value="">All Sectors</option>
+              <option>Manufacturing</option><option>Technology</option><option>Construction</option>
+              <option>Services</option><option>Energy</option><option>Healthcare</option>
+            </select>
+            <select class="filter-select" id="partner-status-filter" onchange="renderPartners()">
+              <option value="">All Status</option><option>Active</option><option>Inactive</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openPartnerModal()">+ Add Partner</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table id="partners-table">
+              <thead><tr><th>#</th><th>Company</th><th>Sector</th><th>Contact</th><th>State</th><th>Status</th><th>MoU</th><th>Actions</th></tr></thead>
+              <tbody id="partners-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── MOU/MOA ──────────────────── -->
+    <section class="page" id="page-moumoa">
+      <div id="mou-alerts-wrapper"></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 MoU / MoA Agreements</h3>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" id="mou-search" placeholder="Search agreements…" oninput="renderMous()"></div>
+            <select class="filter-select" id="mou-status-filter" onchange="renderMous()">
+              <option value="">All</option><option>Active</option><option>Expired</option><option>Pending Renewal</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openMouModal()">+ Add MoU/MoA</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>Agreement</th><th>Partner</th><th>Type</th><th>Start</th><th>Expiry</th><th>Days Left</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="mou-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ACTIVITIES ──────────────────── -->
+    <section class="page" id="page-activities">
+      <div class="card">
+        <div class="card-header">
+          <h3>🤝 Collaboration Activities</h3>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" id="act-search" placeholder="Search activities…" oninput="renderActivities()"></div>
+            <select class="filter-select" id="act-type-filter" onchange="renderActivities()">
+              <option value="">All Types</option>
+              <option>Workshop</option><option>Industrial Visit</option><option>Training</option>
+              <option>Seminar</option><option>Internship</option><option>Guest Lecture</option><option>Project</option>
+            </select>
+            <select class="filter-select" id="act-year-filter" onchange="renderActivities()">
+              <option value="">All Years</option>
+              <option>2024</option><option>2023</option><option>2022</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openActivityModal()">+ Add Activity</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>Activity</th><th>Type</th><th>Partner</th><th>Date</th><th>Venue</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="activities-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── IOC ──────────────────── -->
+    <section class="page" id="page-ioc">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">IOC Projects</div>
+          <div class="kpi-value" id="ioc-kpi-total">—</div>
+          <div class="kpi-sub">Total projects</div>
+          <span class="kpi-icon">🏗️</span>
+        </div>
+        <div class="kpi-card success">
+          <div class="kpi-label">Completed</div>
+          <div class="kpi-value" id="ioc-kpi-done">—</div>
+          <div class="kpi-sub">Successfully delivered</div>
+          <span class="kpi-icon">✅</span>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">In Progress</div>
+          <div class="kpi-value" id="ioc-kpi-progress">—</div>
+          <div class="kpi-sub">Currently active</div>
+          <span class="kpi-icon">⚙️</span>
+        </div>
+        <div class="kpi-card info">
+          <div class="kpi-label">Total Value (RM)</div>
+          <div class="kpi-value" id="ioc-kpi-value">—</div>
+          <div class="kpi-sub">Project investment</div>
+          <span class="kpi-icon">💼</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>🏗️ IOC Projects</h3>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" id="ioc-search" placeholder="Search projects…" oninput="renderIOC()"></div>
+            <select class="filter-select" id="ioc-status-filter" onchange="renderIOC()">
+              <option value="">All Status</option>
+              <option>In Progress</option><option>Completed</option><option>Planning</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openIocModal()">+ Add IOC Project</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="ioc-grid" id="ioc-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── KPI ──────────────────── -->
+    <section class="page" id="page-kpi">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">KPI Achievement Rate</div>
+          <div class="kpi-value" style="color:var(--success);">87%</div>
+          <div class="kpi-sub">Overall 2024 targets</div>
+          <span class="kpi-icon">🎯</span>
+        </div>
+        <div class="kpi-card success">
+          <div class="kpi-label">Targets Met</div>
+          <div class="kpi-value">6/7</div>
+          <div class="kpi-sub">KPI indicators</div>
+          <span class="kpi-icon">✅</span>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">Pending Review</div>
+          <div class="kpi-value">2</div>
+          <div class="kpi-sub">Awaiting Q4 data</div>
+          <span class="kpi-icon">⏳</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>📊 Annual Performance vs Target</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="chart-kpi-bar"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🕸️ KPI Radar – 2024</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="chart-kpi-radar"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>📈 Student Placements Trend</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="chart-placement"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>💰 Industry Contribution (RM)</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="chart-contribution"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- KPI Table -->
+      <div class="card">
+        <div class="card-header"><h3>📋 KPI Indicators Summary</h3></div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrapper">
+            <table id="kpi-table">
+              <thead><tr><th>KPI Indicator</th><th>Target</th><th>Achieved</th><th>Achievement %</th><th>Status</th></tr></thead>
+              <tbody id="kpi-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── REPORTS ──────────────────── -->
+    <section class="page" id="page-reports">
+      <div class="alert-banner alert-success" style="margin-bottom:22px;">
+        ✅ Reports are generated based on current data. Click <strong>Download</strong> to export.
+      </div>
+      <div class="report-grid" id="report-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ─── MODALS ─── -->
+
+<!-- Partner Modal -->
+<div class="modal-overlay" id="modal-partner">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="partner-modal-title">Add Industry Partner</h3>
+      <button class="modal-close" onclick="closeModal('modal-partner')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="partner-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Company Name *</label><input id="p-name" placeholder="e.g. Penang Skill Berhad"></div>
+        <div class="form-group"><label>Sector *</label>
+          <select id="p-sector">
+            <option>Manufacturing</option><option>Technology</option><option>Construction</option>
+            <option>Services</option><option>Energy</option><option>Healthcare</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Contact Person *</label><input id="p-contact" placeholder="Name"></div>
+        <div class="form-group"><label>Phone</label><input id="p-phone" placeholder="+60 4-xxx xxxx"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input id="p-email" type="email" placeholder="email@company.com"></div>
+        <div class="form-group"><label>State</label>
+          <select id="p-state">
+            <option>Penang</option><option>Kedah</option><option>Selangor</option><option>Kuala Lumpur</option>
+            <option>Johor</option><option>Perak</option><option>Kelantan</option><option>Sabah</option><option>Sarawak</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="p-status"><option>Active</option><option>Inactive</option></select>
+        </div>
+        <div class="form-group"><label>Has MoU/MoA?</label>
+          <select id="p-mou"><option>Yes</option><option>No</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Address</label><textarea id="p-address" rows="2" placeholder="Company address…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-partner')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePartner()">💾 Save Partner</button>
+    </div>
+  </div>
+</div>
+
+<!-- MoU Modal -->
+<div class="modal-overlay" id="modal-mou">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="mou-modal-title">Add MoU / MoA</h3>
+      <button class="modal-close" onclick="closeModal('modal-mou')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mou-edit-id">
+      <div class="form-group"><label>Agreement Title *</label><input id="m-title" placeholder="MoU with Company Name"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Partner *</label>
+          <select id="m-partner" style="width:100%;"></select>
+        </div>
+        <div class="form-group"><label>Type</label>
+          <select id="m-type"><option>MoU</option><option>MoA</option><option>MoC</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date *</label><input id="m-start" type="date"></div>
+        <div class="form-group"><label>Expiry Date *</label><input id="m-expiry" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="m-status"><option>Active</option><option>Expired</option><option>Pending Renewal</option></select>
+        </div>
+        <div class="form-group"><label>Scope</label>
+          <select id="m-scope"><option>Training</option><option>Research</option><option>Employment</option><option>General</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Remarks</label><textarea id="m-remarks" rows="2" placeholder="Notes about this agreement…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mou')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMou()">💾 Save Agreement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="modal-overlay" id="modal-activity">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="act-modal-title">Add Collaboration Activity</h3>
+      <button class="modal-close" onclick="closeModal('modal-activity')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="act-edit-id">
+      <div class="form-group"><label>Activity Title *</label><input id="a-title" placeholder="e.g. Industry Workshop 2024"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Type *</label>
+          <select id="a-type">
+            <option>Workshop</option><option>Industrial Visit</option><option>Training</option>
+            <option>Seminar</option><option>Internship</option><option>Guest Lecture</option><option>Project</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Partner</label>
+          <select id="a-partner" style="width:100%;"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Date *</label><input id="a-date" type="date"></div>
+        <div class="form-group"><label>Venue</label><input id="a-venue" placeholder="e.g. DK4, PBU"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Students Involved</label><input id="a-students" type="number" min="0" placeholder="0"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="a-status"><option>Completed</option><option>Upcoming</option><option>Cancelled</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="a-desc" rows="2" placeholder="Brief description…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-activity')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveActivity()">💾 Save Activity</button>
+    </div>
+  </div>
+</div>
+
+<!-- IOC Modal -->
+<div class="modal-overlay" id="modal-ioc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ioc-modal-title">Add IOC Project</h3>
+      <button class="modal-close" onclick="closeModal('modal-ioc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ioc-edit-id">
+      <div class="form-group"><label>Project Title *</label><input id="i-title" placeholder="e.g. Smart Campus Automation"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Company *</label>
+          <select id="i-partner" style="width:100%;"></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="i-status"><option>In Progress</option><option>Completed</option><option>Planning</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input id="i-start" type="date"></div>
+        <div class="form-group"><label>End Date</label><input id="i-end" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Value (RM)</label><input id="i-value" type="number" placeholder="50000"></div>
+        <div class="form-group"><label>Students Involved</label><input id="i-students" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="i-desc" rows="2" placeholder="Project description…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ioc')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIoc()">💾 Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <h3>⬆ Import Data</h3>
+      <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Import Module</label>
+        <select id="import-module" class="filter-select" style="width:100%;">
+          <option value="partners">Industry Partners</option>
+          <option value="moumoa">MoU / MoA</option>
+          <option value="activities">Collaboration Activities</option>
+          <option value="ioc">IOC Projects</option>
+        </select>
+      </div>
+      <div style="border:2px dashed var(--gray-200);border-radius:8px;padding:32px;text-align:center;margin:8px 0;">
+        <div style="font-size:36px;margin-bottom:10px;">📂</div>
+        <p style="font-size:14px;color:var(--gray-600);margin-bottom:10px;">Drag & drop your Excel/CSV file here</p>
+        <button class="btn btn-secondary btn-sm" onclick="simulateImport()">Browse File</button>
+      </div>
+      <p style="font-size:12px;color:var(--gray-400);margin-top:8px;">Supported formats: .xlsx, .xls, .csv. Max size: 5MB.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" onclick="simulateImport()">⬆ Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── JAVASCRIPT ─── -->
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+//  DATA STORE — localStorage-backed
+// ══════════════════════════════════════════════════════════════
+const KEYS = { partners:'cisec_partners', mous:'cisec_mous', activities:'cisec_activities', ioc:'cisec_ioc' };
+
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(KEYS[key])) || null; }
+  catch(e){ return null; }
+}
+function save(key, data) { localStorage.setItem(KEYS[key], JSON.stringify(data)); }
+
+// Seed sample data if first run
+function seedData() {
+  if (!load('partners')) {
+    save('partners', [
+      {id:1,name:'Penang Skill Berhad',sector:'Manufacturing',contact:'Hj. Azman Yusof',phone:'04-6434567',email:'azman@pensb.com.my',state:'Penang',status:'Active',mou:'Yes',address:'Bayan Lepas Industrial Zone, Penang'},
+      {id:2,name:'Intel Malaysia Sdn Bhd',sector:'Technology',contact:'Pn. Lim Wei Ling',phone:'04-8821000',email:'lim.wl@intel.com',state:'Penang',status:'Active',mou:'Yes',address:'Bayan Lepas Free Industrial Zone, Penang'},
+      {id:3,name:'Robert Bosch Sdn Bhd',sector:'Manufacturing',contact:'En. Kamal Nizam',phone:'04-5912300',email:'kamal@bosch.com',state:'Penang',status:'Active',mou:'Yes',address:'Prai Industrial Estate, Penang'},
+      {id:4,name:'Jabil Circuit Sdn Bhd',sector:'Technology',contact:'Ms. Sarah Tan',phone:'04-6418700',email:'sarah.tan@jabil.com',state:'Penang',status:'Active',mou:'Yes',address:'Bayan Lepas, Penang'},
+      {id:5,name:'Wawasan Open University',sector:'Services',contact:'Dr. Ahmad Fauzi',phone:'04-2180333',email:'fauzi@wou.edu.my',state:'Penang',status:'Active',mou:'No',address:'Penang Road, Georgetown'},
+      {id:6,name:'Sapura Energy',sector:'Energy',contact:'En. Rizal Hamid',phone:'03-7884100',email:'rizal@sapura.com',state:'Selangor',status:'Active',mou:'Yes',address:'Shah Alam, Selangor'},
+      {id:7,name:'KPJ Healthcare',sector:'Healthcare',contact:'Pn. Nurul Ain',phone:'03-7732888',email:'nurul@kpj.com.my',state:'Kedah',status:'Active',mou:'No',address:'Sungai Petani, Kedah'},
+      {id:8,name:'IJM Corporation',sector:'Construction',contact:'Mr. David Chong',phone:'03-7985533',email:'david@ijm.com',state:'Selangor',status:'Inactive',mou:'No',address:'Petaling Jaya, Selangor'},
+      {id:9,name:'Penang Port Sdn Bhd',sector:'Services',contact:'Hj. Suhaimi Bakar',phone:'04-2102211',email:'suhaimi@penangport.com',state:'Penang',status:'Active',mou:'Yes',address:'Swettenham Pier, Georgetown'},
+      {id:10,name:'Motorola Solutions',sector:'Technology',contact:'Ms. Jenny Lee',phone:'04-6449800',email:'jenny@motorola.com',state:'Penang',status:'Active',mou:'Yes',address:'Bayan Lepas FIZ, Penang'},
+    ]);
+  }
+  if (!load('mous')) {
+    save('mous', [
+      {id:1,title:'MoU Intel – Internship & Training',partner:'Intel Malaysia Sdn Bhd',type:'MoU',start:'2022-01-15',expiry:'2025-01-14',status:'Active',scope:'Training',remarks:'Annual renewal preferred'},
+      {id:2,title:'MoU Penang Skill – Technical Training',partner:'Penang Skill Berhad',type:'MoU',start:'2021-06-01',expiry:'2024-05-31',status:'Pending Renewal',scope:'Training',remarks:'Renewal discussion ongoing'},
+      {id:3,title:'MoA Robert Bosch – Industry Attachment',partner:'Robert Bosch Sdn Bhd',type:'MoA',start:'2023-03-01',expiry:'2026-02-28',status:'Active',scope:'Employment',remarks:''},
+      {id:4,title:'MoU Jabil – Student Placement',partner:'Jabil Circuit Sdn Bhd',type:'MoU',start:'2022-07-01',expiry:'2024-06-30',status:'Expired',scope:'Employment',remarks:'Under review for renewal'},
+      {id:5,title:'MoU Sapura – Research Collaboration',partner:'Sapura Energy',type:'MoU',start:'2023-08-15',expiry:'2025-08-14',status:'Active',scope:'Research',remarks:'Joint publication planned'},
+      {id:6,title:'MoU Penang Port – Maritime Training',partner:'Penang Port Sdn Bhd',type:'MoU',start:'2020-09-01',expiry:'2024-08-31',status:'Pending Renewal',scope:'Training',remarks:'Expansion of scope requested'},
+      {id:7,title:'MoU Motorola – IoT Programme',partner:'Motorola Solutions',type:'MoA',start:'2023-01-01',expiry:'2025-12-31',status:'Active',scope:'Research',remarks:'Joint lab setup in progress'},
+    ]);
+  }
+  if (!load('activities')) {
+    save('activities', [
+      {id:1,title:'Industry 4.0 Workshop Series',type:'Workshop',partner:'Intel Malaysia Sdn Bhd',date:'2024-03-15',venue:'DK Utama, PBU',students:120,status:'Completed',desc:'IoT and automation technologies'},
+      {id:2,title:'Plant Visit – Bosch Manufacturing',type:'Industrial Visit',partner:'Robert Bosch Sdn Bhd',date:'2024-04-08',venue:'Bosch Plant, Prai',students:45,status:'Completed',desc:'Lean manufacturing observation'},
+      {id:3,title:'Cybersecurity Awareness Seminar',type:'Seminar',partner:'Motorola Solutions',date:'2024-05-20',venue:'Auditorium PBU',students:200,status:'Completed',desc:'Network security best practices'},
+      {id:4,title:'Technical Training – CNC Operation',type:'Training',partner:'Penang Skill Berhad',date:'2024-06-10',venue:'Workshop A, PBU',students:30,status:'Completed',desc:'CNC machining certification programme'},
+      {id:5,title:'Industrial Internship Placement',type:'Internship',partner:'Jabil Circuit Sdn Bhd',date:'2024-07-01',venue:'Jabil Bayan Lepas',students:25,status:'Completed',desc:'6-month industrial training'},
+      {id:6,title:'Guest Lecture – Renewable Energy',type:'Guest Lecture',partner:'Sapura Energy',date:'2024-08-22',venue:'Lecture Hall 3, PBU',students:80,status:'Completed',desc:'Solar and offshore energy trends'},
+      {id:7,title:'Automation Technology Expo Visit',type:'Industrial Visit',partner:'Penang Skill Berhad',date:'2024-09-14',venue:'PICE Penang',students:60,status:'Completed',desc:'MITI-sponsored industry expo'},
+      {id:8,title:'Embedded Systems Workshop',type:'Workshop',partner:'Intel Malaysia Sdn Bhd',date:'2024-10-05',venue:'Lab Elektronik, PBU',students:40,status:'Upcoming',desc:'FPGA and embedded programming'},
+      {id:9,title:'Logistics & Port Operation Visit',type:'Industrial Visit',partner:'Penang Port Sdn Bhd',date:'2024-11-18',venue:'Penang Port',students:35,status:'Upcoming',desc:'Port operations and logistics chain'},
+      {id:10,title:'Healthcare Tech Seminar',type:'Seminar',partner:'KPJ Healthcare',date:'2024-12-03',venue:'Dewan Seminar PBU',students:90,status:'Upcoming',desc:'Medical device and digital health'},
+    ]);
+  }
+  if (!load('ioc')) {
+    save('ioc', [
+      {id:1,title:'Smart Campus Energy Monitoring System',partner:'Motorola Solutions',status:'Completed',start:'2023-01-01',end:'2023-12-31',value:85000,students:12,desc:'IoT-based energy monitoring across PBU campus buildings'},
+      {id:2,title:'Automated Attendance System',partner:'Intel Malaysia Sdn Bhd',status:'Completed',start:'2023-06-01',end:'2024-05-31',value:62000,students:8,desc:'Face recognition attendance for laboratories'},
+      {id:3,title:'CNC Training Lab Upgrade',partner:'Penang Skill Berhad',status:'In Progress',start:'2024-03-01',end:'2024-12-31',value:150000,students:20,desc:'Industry-grade CNC machines installation and training'},
+      {id:4,title:'PCB Design & Fabrication Centre',partner:'Jabil Circuit Sdn Bhd',status:'In Progress',start:'2024-01-15',end:'2024-11-30',value:90000,students:15,desc:'Mini PCB fabrication facility for student projects'},
+      {id:5,title:'Renewable Energy Demo Plant',partner:'Sapura Energy',status:'Planning',start:'2025-01-01',end:'2025-12-31',value:200000,students:18,desc:'Solar PV and wind energy demonstration site'},
+      {id:6,title:'Maritime Simulator Lab',partner:'Penang Port Sdn Bhd',status:'In Progress',start:'2024-04-01',end:'2025-03-31',value:120000,students:10,desc:'Ship navigation and port operations simulator'},
+    ]);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  if (u === 'admin' && p === 'cisec2024') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  toast('Logged out successfully.', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════════
+const PAGE_TITLES = {
+  overview:'Executive Overview', partners:'Industry Partners', moumoa:'MoU / MoA Tracker',
+  activities:'Collaboration Activities', ioc:'Industry on Campus (IOC)', kpi:'KPI & Impact Analytics', reports:'Reports & Export'
+};
+
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes(`'${page}'`)) n.classList.add('active'); });
+  document.getElementById('topbar-title-text').textContent = PAGE_TITLES[page] || page;
+  if (page === 'overview') { renderOverview(); }
+  if (page === 'partners') { renderPartners(); }
+  if (page === 'moumoa') { populatePartnerSelects(); renderMous(); }
+  if (page === 'activities') { populatePartnerSelects(); renderActivities(); }
+  if (page === 'ioc') { populatePartnerSelects(); renderIOC(); updateIOCKpis(); }
+  if (page === 'kpi') { setTimeout(renderKPICharts, 50); renderKPITable(); }
+  if (page === 'reports') { renderReports(); }
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// ══════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',warning:'⚠️'};
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+});
+
+function openImportModal() { openModal('modal-import'); }
+function simulateImport() {
+  closeModal('modal-import');
+  toast('Import simulated — sample data refreshed.', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  OVERVIEW PAGE
+// ══════════════════════════════════════════════════════════════
+let sectorChart, trendChart;
+
+function renderOverview() {
+  const partners = load('partners') || [];
+  const mous = load('mous') || [];
+  const activities = load('activities') || [];
+  const ioc = load('ioc') || [];
+
+  document.getElementById('kpi-partners').textContent = partners.length;
+  document.getElementById('kpi-mou').textContent = mous.filter(m=>m.status==='Active').length;
+  document.getElementById('kpi-activities').textContent = activities.length;
+  const totalStudents = activities.reduce((s,a) => s+(+a.students||0), 0);
+  document.getElementById('kpi-students').textContent = totalStudents.toLocaleString();
+  const totalValue = ioc.reduce((s,i) => s+(+i.value||0), 0);
+  document.getElementById('kpi-contrib').textContent = 'RM ' + (totalValue/1000).toFixed(0) + 'K';
+
+  // Expiry alerts
+  const today = new Date();
+  const alertsEl = document.getElementById('expiry-alerts-list');
+  const expiring = mous.filter(m => {
+    const d = new Date(m.expiry);
+    const diff = Math.round((d - today)/(1000*86400));
+    return diff < 180;
+  }).sort((a,b) => new Date(a.expiry)-new Date(b.expiry));
+
+  if (expiring.length === 0) {
+    alertsEl.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No upcoming expiries.</p></div>';
+  } else {
+    alertsEl.innerHTML = expiring.slice(0,5).map(m => {
+      const diff = Math.round((new Date(m.expiry) - today)/(1000*86400));
+      const cls = diff < 0 ? 'danger' : diff < 60 ? 'danger' : 'warning';
+      const label = diff < 0 ? 'EXPIRED' : `${diff}d left`;
+      const pct = Math.max(0, Math.min(100, (diff/365)*100));
+      return `<div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;">${m.title}</span>
+          <span class="badge badge-${cls}">${label}</span>
+        </div>
+        <div style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">${m.partner} • Expires ${m.expiry}</div>
+        <div class="expiry-bar"><div class="expiry-fill ${diff<60?'danger':''}" style="width:${pct}%;background:${diff<0?'var(--danger)':diff<60?'var(--warning)':'var(--teal)'};height:4px;border-radius:99px;"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Recent Activities
+  const recEl = document.getElementById('recent-activities-list');
+  const recent = [...activities].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+  const typeIcons = {Workshop:'🔧',Seminar:'🎤','Industrial Visit':'🏭',Training:'📚',Internship:'💼','Guest Lecture':'🎓',Project:'🏗️'};
+  recEl.innerHTML = `<div class="timeline">${recent.map(a => `
+    <div class="tl-item">
+      <div class="tl-dot">${typeIcons[a.type]||'📌'}</div>
+      <div class="tl-content">
+        <h5>${a.title}</h5>
+        <p>${a.partner} • ${a.date} • ${a.students} students</p>
+      </div>
+    </div>`).join('')}</div>`;
+
+  // Charts
+  renderSectorChart(partners);
+  renderTrendChart(activities);
+}
+
+function renderSectorChart(partners) {
+  const ctx = document.getElementById('chart-sector');
+  const counts = {};
+  partners.forEach(p => { counts[p.sector] = (counts[p.sector]||0)+1; });
+  const labels = Object.keys(counts);
+  const data = labels.map(l => counts[l]);
+  const colors = ['#00b4b4','#122040','#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6'];
+  if (sectorChart) sectorChart.destroy();
+  sectorChart = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors.slice(0,labels.length), borderWidth:2, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{size:12} } } } }
+  });
+}
+
+function renderTrendChart(activities) {
+  const ctx = document.getElementById('chart-trend');
+  const years = ['2020','2021','2022','2023','2024'];
+  const counts = years.map(y => activities.filter(a => a.date && a.date.startsWith(y)).length);
+  const students = years.map(y => activities.filter(a => a.date && a.date.startsWith(y)).reduce((s,a) => s+(+a.students||0),0));
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:years,
+      datasets:[
+        { label:'Activities', data:counts, backgroundColor:'rgba(0,180,180,0.7)', borderColor:'#00b4b4', borderWidth:2, borderRadius:4 },
+        { label:'Students', data:students, backgroundColor:'rgba(18,32,64,0.7)', borderColor:'#122040', borderWidth:2, borderRadius:4, yAxisID:'y2' }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom' } },
+      scales:{
+        y:{ beginAtZero:true, title:{display:true,text:'Activities'} },
+        y2:{ position:'right', beginAtZero:true, title:{display:true,text:'Students'}, grid:{drawOnChartArea:false} }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PARTNERS PAGE
+// ══════════════════════════════════════════════════════════════
+function renderPartners() {
+  const partners = load('partners') || [];
+  const q = document.getElementById('partner-search').value.toLowerCase();
+  const sector = document.getElementById('partner-sector-filter').value;
+  const status = document.getElementById('partner-status-filter').value;
+  let filtered = partners.filter(p => {
+    if (q && !p.name.toLowerCase().includes(q) && !p.contact.toLowerCase().includes(q)) return false;
+    if (sector && p.sector !== sector) return false;
+    if (status && p.status !== status) return false;
+    return true;
+  });
+  const tbody = document.getElementById('partners-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">🏭</div><p>No partners found.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((p, i) => `
+    <tr>
+      <td style="color:var(--gray-400);font-weight:600;">${i+1}</td>
+      <td><div style="font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--gray-400);">${p.email||''}</div></td>
+      <td><span class="badge badge-navy">${p.sector}</span></td>
+      <td>${p.contact}<div style="font-size:12px;color:var(--gray-400);">${p.phone||''}</div></td>
+      <td>${p.state}</td>
+      <td><span class="badge ${p.status==='Active'?'badge-success':'badge-danger'}">${p.status}</span></td>
+      <td><span class="badge ${p.mou==='Yes'?'badge-teal':'badge-warning'}">${p.mou==='Yes'?'Has MoU':'No MoU'}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editPartner(${p.id})" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deletePartner(${p.id})" title="Delete">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openPartnerModal(editId=null) {
+  document.getElementById('partner-modal-title').textContent = editId ? 'Edit Industry Partner' : 'Add Industry Partner';
+  document.getElementById('partner-edit-id').value = editId || '';
+  if (!editId) {
+    ['p-name','p-contact','p-phone','p-email','p-address'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('p-sector').value='Manufacturing';
+    document.getElementById('p-state').value='Penang';
+    document.getElementById('p-status').value='Active';
+    document.getElementById('p-mou').value='Yes';
+  }
+  openModal('modal-partner');
+}
+
+function editPartner(id) {
+  const p = (load('partners')||[]).find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('partner-modal-title').textContent = 'Edit Industry Partner';
+  document.getElementById('partner-edit-id').value = id;
+  document.getElementById('p-name').value = p.name;
+  document.getElementById('p-contact').value = p.contact;
+  document.getElementById('p-phone').value = p.phone||'';
+  document.getElementById('p-email').value = p.email||'';
+  document.getElementById('p-address').value = p.address||'';
+  document.getElementById('p-sector').value = p.sector;
+  document.getElementById('p-state').value = p.state;
+  document.getElementById('p-status').value = p.status;
+  document.getElementById('p-mou').value = p.mou;
+  openModal('modal-partner');
+}
+
+function savePartner() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { toast('Company name is required.', 'error'); return; }
+  const partners = load('partners') || [];
+  const editId = +document.getElementById('partner-edit-id').value;
+  const obj = {
+    id: editId || (Math.max(0,...partners.map(p=>p.id))+1),
+    name, sector:document.getElementById('p-sector').value,
+    contact:document.getElementById('p-contact').value.trim(),
+    phone:document.getElementById('p-phone').value.trim(),
+    email:document.getElementById('p-email').value.trim(),
+    state:document.getElementById('p-state').value,
+    status:document.getElementById('p-status').value,
+    mou:document.getElementById('p-mou').value,
+    address:document.getElementById('p-address').value.trim()
+  };
+  if (editId) {
+    const idx = partners.findIndex(p=>p.id===editId);
+    partners[idx] = obj;
+    toast('Partner updated successfully.', 'success');
+  } else {
+    partners.push(obj);
+    toast('Partner added successfully.', 'success');
+  }
+  save('partners', partners);
+  closeModal('modal-partner');
+  renderPartners();
+}
+
+function deletePartner(id) {
+  if (!confirm('Delete this partner? This cannot be undone.')) return;
+  const partners = (load('partners')||[]).filter(p=>p.id!==id);
+  save('partners', partners);
+  toast('Partner deleted.', 'warning');
+  renderPartners();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  POPULATE PARTNER SELECTS
+// ══════════════════════════════════════════════════════════════
+function populatePartnerSelects() {
+  const partners = load('partners') || [];
+  const opts = partners.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+  ['m-partner','a-partner','i-partner'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">— Select Partner —</option>' + opts;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MOU/MOA PAGE
+// ══════════════════════════════════════════════════════════════
+function renderMous() {
+  const mous = load('mous') || [];
+  const q = document.getElementById('mou-search').value.toLowerCase();
+  const status = document.getElementById('mou-status-filter').value;
+  const today = new Date();
+
+  let filtered = mous.filter(m => {
+    if (q && !m.title.toLowerCase().includes(q) && !m.partner.toLowerCase().includes(q)) return false;
+    if (status && m.status !== status) return false;
+    return true;
+  });
+
+  // Alerts banner
+  const expiring = mous.filter(m => {
+    const diff = Math.round((new Date(m.expiry)-today)/(1000*86400));
+    return diff >= 0 && diff < 90;
+  });
+  const alertsWrapper = document.getElementById('mou-alerts-wrapper');
+  if (expiring.length > 0) {
+    alertsWrapper.innerHTML = `<div class="alert-banner alert-warning">⚠️ <strong>${expiring.length} agreement(s)</strong> expiring within 90 days. Review and initiate renewal.</div>`;
+  } else {
+    alertsWrapper.innerHTML = '';
+  }
+
+  const tbody = document.getElementById('mou-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><p>No agreements found.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((m, i) => {
+    const diff = Math.round((new Date(m.expiry)-today)/(1000*86400));
+    const daysLabel = diff < 0 ? `<span class="badge badge-danger">EXPIRED</span>` : diff < 90 ? `<span class="badge badge-warning">${diff}d</span>` : `<span style="color:var(--gray-400);">${diff}d</span>`;
+    const stCls = m.status==='Active'?'badge-success':m.status==='Expired'?'badge-danger':'badge-warning';
+    return `<tr>
+      <td style="color:var(--gray-400);">${i+1}</td>
+      <td><div style="font-weight:600;">${m.title}</div><div style="font-size:12px;color:var(--gray-400);">${m.scope}</div></td>
+      <td>${m.partner}</td>
+      <td><span class="badge badge-navy">${m.type}</span></td>
+      <td>${m.start}</td>
+      <td>${m.expiry}</td>
+      <td>${daysLabel}</td>
+      <td><span class="badge ${stCls}">${m.status}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editMou(${m.id})" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteMou(${m.id})" title="Delete">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openMouModal(editId=null) {
+  populatePartnerSelects();
+  document.getElementById('mou-modal-title').textContent = editId ? 'Edit MoU/MoA' : 'Add MoU / MoA';
+  document.getElementById('mou-edit-id').value = editId || '';
+  if (!editId) {
+    ['m-title','m-remarks'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('m-start').value=''; document.getElementById('m-expiry').value='';
+  }
+  openModal('modal-mou');
+}
+
+function editMou(id) {
+  populatePartnerSelects();
+  const m = (load('mous')||[]).find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('mou-modal-title').textContent='Edit MoU/MoA';
+  document.getElementById('mou-edit-id').value=id;
+  document.getElementById('m-title').value=m.title;
+  document.getElementById('m-partner').value=m.partner;
+  document.getElementById('m-type').value=m.type;
+  document.getElementById('m-start').value=m.start;
+  document.getElementById('m-expiry').value=m.expiry;
+  document.getElementById('m-status').value=m.status;
+  document.getElementById('m-scope').value=m.scope;
+  document.getElementById('m-remarks').value=m.remarks||'';
+  openModal('modal-mou');
+}
+
+function saveMou() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) { toast('Title is required.', 'error'); return; }
+  const mous = load('mous') || [];
+  const editId = +document.getElementById('mou-edit-id').value;
+  const obj = {
+    id: editId || (Math.max(0,...mous.map(m=>m.id))+1),
+    title, partner:document.getElementById('m-partner').value,
+    type:document.getElementById('m-type').value,
+    start:document.getElementById('m-start').value,
+    expiry:document.getElementById('m-expiry').value,
+    status:document.getElementById('m-status').value,
+    scope:document.getElementById('m-scope').value,
+    remarks:document.getElementById('m-remarks').value.trim()
+  };
+  if (editId) { const idx=mous.findIndex(m=>m.id===editId); mous[idx]=obj; toast('Agreement updated.','success'); }
+  else { mous.push(obj); toast('Agreement added.','success'); }
+  save('mous', mous);
+  closeModal('modal-mou');
+  renderMous();
+}
+
+function deleteMou(id) {
+  if (!confirm('Delete this agreement?')) return;
+  save('mous', (load('mous')||[]).filter(m=>m.id!==id));
+  toast('Agreement deleted.','warning');
+  renderMous();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ACTIVITIES PAGE
+// ══════════════════════════════════════════════════════════════
+const actTypeIcons={Workshop:'🔧',Seminar:'🎤','Industrial Visit':'🏭',Training:'📚',Internship:'💼','Guest Lecture':'🎓',Project:'🏗️'};
+
+function renderActivities() {
+  const activities = load('activities') || [];
+  const q = document.getElementById('act-search').value.toLowerCase();
+  const type = document.getElementById('act-type-filter').value;
+  const year = document.getElementById('act-year-filter').value;
+  let filtered = activities.filter(a => {
+    if (q && !a.title.toLowerCase().includes(q) && !a.partner.toLowerCase().includes(q)) return false;
+    if (type && a.type !== type) return false;
+    if (year && !a.date.startsWith(year)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('activities-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">🤝</div><p>No activities found.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((a, i) => {
+    const stCls = a.status==='Completed'?'badge-success':a.status==='Upcoming'?'badge-info':'badge-danger';
+    return `<tr>
+      <td style="color:var(--gray-400);">${i+1}</td>
+      <td><div style="font-weight:600;">${actTypeIcons[a.type]||'📌'} ${a.title}</div><div style="font-size:12px;color:var(--gray-400);">${a.desc||''}</div></td>
+      <td><span class="badge badge-teal">${a.type}</span></td>
+      <td>${a.partner}</td>
+      <td>${a.date}</td>
+      <td style="font-size:13px;">${a.venue}</td>
+      <td style="text-align:center;font-weight:700;color:var(--navy);">${a.students}</td>
+      <td><span class="badge ${stCls}">${a.status}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editActivity(${a.id})" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteActivity(${a.id})" title="Delete">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openActivityModal(editId=null) {
+  populatePartnerSelects();
+  document.getElementById('act-modal-title').textContent = editId ? 'Edit Activity' : 'Add Collaboration Activity';
+  document.getElementById('act-edit-id').value = editId || '';
+  if (!editId) {
+    ['a-title','a-venue','a-desc'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('a-date').value=''; document.getElementById('a-students').value='0';
+  }
+  openModal('modal-activity');
+}
+
+function editActivity(id) {
+  populatePartnerSelects();
+  const a = (load('activities')||[]).find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('act-modal-title').textContent='Edit Activity';
+  document.getElementById('act-edit-id').value=id;
+  document.getElementById('a-title').value=a.title;
+  document.getElementById('a-type').value=a.type;
+  document.getElementById('a-partner').value=a.partner;
+  document.getElementById('a-date').value=a.date;
+  document.getElementById('a-venue').value=a.venue||'';
+  document.getElementById('a-students').value=a.students||0;
+  document.getElementById('a-status').value=a.status;
+  document.getElementById('a-desc').value=a.desc||'';
+  openModal('modal-activity');
+}
+
+function saveActivity() {
+  const title = document.getElementById('a-title').value.trim();
+  if (!title) { toast('Title is required.', 'error'); return; }
+  const activities = load('activities') || [];
+  const editId = +document.getElementById('act-edit-id').value;
+  const obj = {
+    id: editId || (Math.max(0,...activities.map(a=>a.id))+1),
+    title, type:document.getElementById('a-type').value,
+    partner:document.getElementById('a-partner').value,
+    date:document.getElementById('a-date').value,
+    venue:document.getElementById('a-venue').value.trim(),
+    students:+document.getElementById('a-students').value||0,
+    status:document.getElementById('a-status').value,
+    desc:document.getElementById('a-desc').value.trim()
+  };
+  if (editId) { const idx=activities.findIndex(a=>a.id===editId); activities[idx]=obj; toast('Activity updated.','success'); }
+  else { activities.push(obj); toast('Activity added.','success'); }
+  save('activities', activities);
+  closeModal('modal-activity');
+  renderActivities();
+}
+
+function deleteActivity(id) {
+  if (!confirm('Delete this activity?')) return;
+  save('activities', (load('activities')||[]).filter(a=>a.id!==id));
+  toast('Activity deleted.','warning');
+  renderActivities();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  IOC PAGE
+// ══════════════════════════════════════════════════════════════
+function updateIOCKpis() {
+  const ioc = load('ioc') || [];
+  document.getElementById('ioc-kpi-total').textContent = ioc.length;
+  document.getElementById('ioc-kpi-done').textContent = ioc.filter(i=>i.status==='Completed').length;
+  document.getElementById('ioc-kpi-progress').textContent = ioc.filter(i=>i.status==='In Progress').length;
+  const totalVal = ioc.reduce((s,i) => s+(+i.value||0),0);
+  document.getElementById('ioc-kpi-value').textContent = 'RM '+(totalVal/1000).toFixed(0)+'K';
+}
+
+function renderIOC() {
+  const ioc = load('ioc') || [];
+  const q = document.getElementById('ioc-search').value.toLowerCase();
+  const status = document.getElementById('ioc-status-filter').value;
+  let filtered = ioc.filter(i => {
+    if (q && !i.title.toLowerCase().includes(q) && !i.partner.toLowerCase().includes(q)) return false;
+    if (status && i.status !== status) return false;
+    return true;
+  });
+  const grid = document.getElementById('ioc-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="width:100%;"><div class="icon">🏗️</div><p>No IOC projects found.</p></div>';
+    return;
+  }
+  const stColors = {'Completed':'var(--success)','In Progress':'var(--teal)','Planning':'var(--warning)'};
+  grid.innerHTML = filtered.map(i => `
+    <div class="ioc-card" style="border-top-color:${stColors[i.status]||'var(--teal)'};">
+      <div class="ioc-card-head">
+        <div>
+          <div class="ioc-card-title">${i.title}</div>
+          <div class="ioc-card-company">🏭 ${i.partner}</div>
+        </div>
+        <span class="badge ${i.status==='Completed'?'badge-success':i.status==='In Progress'?'badge-teal':'badge-warning'}">${i.status}</span>
+      </div>
+      <p style="font-size:13px;color:var(--gray-600);margin-top:8px;line-height:1.5;">${i.desc||'—'}</p>
+      <div class="ioc-meta">
+        <span>📅 ${i.start} – ${i.end||'TBD'}</span>
+        <span>💰 RM ${(+i.value||0).toLocaleString()}</span>
+        <span>🎓 ${i.students} students</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-secondary btn-sm" onclick="editIoc(${i.id})">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteIoc(${i.id})">🗑️ Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function openIocModal(editId=null) {
+  populatePartnerSelects();
+  document.getElementById('ioc-modal-title').textContent = editId ? 'Edit IOC Project' : 'Add IOC Project';
+  document.getElementById('ioc-edit-id').value = editId || '';
+  if (!editId) {
+    ['i-title','i-desc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('i-start').value=''; document.getElementById('i-end').value='';
+    document.getElementById('i-value').value=''; document.getElementById('i-students').value='0';
+  }
+  openModal('modal-ioc');
+}
+
+function editIoc(id) {
+  populatePartnerSelects();
+  const i = (load('ioc')||[]).find(x=>x.id===id);
+  if(!i) return;
+  document.getElementById('ioc-modal-title').textContent='Edit IOC Project';
+  document.getElementById('ioc-edit-id').value=id;
+  document.getElementById('i-title').value=i.title;
+  document.getElementById('i-partner').value=i.partner;
+  document.getElementById('i-status').value=i.status;
+  document.getElementById('i-start').value=i.start||'';
+  document.getElementById('i-end').value=i.end||'';
+  document.getElementById('i-value').value=i.value||0;
+  document.getElementById('i-students').value=i.students||0;
+  document.getElementById('i-desc').value=i.desc||'';
+  openModal('modal-ioc');
+}
+
+function saveIoc() {
+  const title = document.getElementById('i-title').value.trim();
+  if (!title) { toast('Title is required.', 'error'); return; }
+  const ioc = load('ioc') || [];
+  const editId = +document.getElementById('ioc-edit-id').value;
+  const obj = {
+    id: editId || (Math.max(0,...ioc.map(i=>i.id))+1),
+    title, partner:document.getElementById('i-partner').value,
+    status:document.getElementById('i-status').value,
+    start:document.getElementById('i-start').value,
+    end:document.getElementById('i-end').value,
+    value:+document.getElementById('i-value').value||0,
+    students:+document.getElementById('i-students').value||0,
+    desc:document.getElementById('i-desc').value.trim()
+  };
+  if (editId) { const idx=ioc.findIndex(i=>i.id===editId); ioc[idx]=obj; toast('IOC project updated.','success'); }
+  else { ioc.push(obj); toast('IOC project added.','success'); }
+  save('ioc', ioc);
+  closeModal('modal-ioc');
+  renderIOC();
+  updateIOCKpis();
+}
+
+function deleteIoc(id) {
+  if (!confirm('Delete this IOC project?')) return;
+  save('ioc', (load('ioc')||[]).filter(i=>i.id!==id));
+  toast('IOC project deleted.','warning');
+  renderIOC(); updateIOCKpis();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KPI PAGE
+// ══════════════════════════════════════════════════════════════
+let kpiBarChart, kpiRadarChart, placementChart, contribChart;
+
+const KPI_DATA = [
+  {indicator:'Industry Partners',target:15,achieved:14},
+  {indicator:'Active MoU/MoA',target:10,achieved:9},
+  {indicator:'Collaboration Activities',target:12,achieved:12},
+  {indicator:'Students in Industrial Training',target:300,achieved:280},
+  {indicator:'IOC Projects',target:6,achieved:6},
+  {indicator:'Industry Contributions (RM000)',target:700,achieved:580},
+  {indicator:'Graduate Employment Rate (%)',target:85,achieved:79},
+];
+
+function renderKPICharts() {
+  // Bar chart – target vs achieved
+  const ctxBar = document.getElementById('chart-kpi-bar');
+  if(kpiBarChart) kpiBarChart.destroy();
+  kpiBarChart = new Chart(ctxBar, {
+    type:'bar',
+    data:{
+      labels:['Partners','MoU/MoA','Activities','Interns (×10)','IOC','Contrib (÷100k)','Employment %'],
+      datasets:[
+        {label:'Target',data:[15,10,12,30,6,7,85],backgroundColor:'rgba(18,32,64,0.6)',borderColor:'#122040',borderWidth:2,borderRadius:4},
+        {label:'Achieved',data:[14,9,12,28,6,5.8,79],backgroundColor:'rgba(0,180,180,0.7)',borderColor:'#00b4b4',borderWidth:2,borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}},
+      scales:{y:{beginAtZero:true}}
+    }
+  });
+
+  // Radar chart
+  const ctxRadar = document.getElementById('chart-kpi-radar');
+  if(kpiRadarChart) kpiRadarChart.destroy();
+  kpiRadarChart = new Chart(ctxRadar, {
+    type:'radar',
+    data:{
+      labels:['Partners','MoU/MoA','Activities','Student Placement','IOC Projects','Contributions','Employment'],
+      datasets:[
+        {label:'Target',data:[100,100,100,100,100,100,100],backgroundColor:'rgba(18,32,64,0.08)',borderColor:'rgba(18,32,64,0.4)',pointBackgroundColor:'#122040'},
+        {label:'Achieved (%)',data:[93,90,100,93,100,83,93],backgroundColor:'rgba(0,180,180,0.15)',borderColor:'#00b4b4',pointBackgroundColor:'#00b4b4'}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}},
+      scales:{r:{min:0,max:110,ticks:{stepSize:20}}}
+    }
+  });
+
+  // Student Placements
+  const ctxPlacement = document.getElementById('chart-placement');
+  if(placementChart) placementChart.destroy();
+  placementChart = new Chart(ctxPlacement, {
+    type:'line',
+    data:{
+      labels:['2019','2020','2021','2022','2023','2024'],
+      datasets:[{
+        label:'Students Placed',data:[180,145,160,220,255,280],
+        backgroundColor:'rgba(0,180,180,0.12)',borderColor:'#00b4b4',
+        pointBackgroundColor:'#00b4b4',tension:0.4,fill:true,borderWidth:2.5,pointRadius:5
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:100}}}
+  });
+
+  // Industry Contributions
+  const ctxContrib = document.getElementById('chart-contribution');
+  if(contribChart) contribChart.destroy();
+  contribChart = new Chart(ctxContrib, {
+    type:'bar',
+    data:{
+      labels:['2019','2020','2021','2022','2023','2024'],
+      datasets:[{
+        label:'Contributions (RM)',
+        data:[310000,280000,350000,420000,510000,580000],
+        backgroundColor:['rgba(0,180,180,0.7)','rgba(0,180,180,0.65)','rgba(0,180,180,0.7)','rgba(18,32,64,0.6)','rgba(18,32,64,0.65)','rgba(18,32,64,0.7)'],
+        borderRadius:5
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>'RM '+(v/1000).toFixed(0)+'K'}}}
+    }
+  });
+}
+
+function renderKPITable() {
+  const tbody = document.getElementById('kpi-tbody');
+  tbody.innerHTML = KPI_DATA.map(k => {
+    const pct = Math.round((k.achieved/k.target)*100);
+    const stCls = pct>=100?'badge-success':pct>=80?'badge-warning':'badge-danger';
+    const stLabel = pct>=100?'✅ Met':pct>=80?'⚠️ Near':'❌ Below';
+    const barCls = pct>=100?'':pct>=80?'warning':'danger';
+    const barColor = pct>=100?'var(--teal)':pct>=80?'var(--warning)':'var(--danger)';
+    return `<tr>
+      <td style="font-weight:600;">${k.indicator}</td>
+      <td style="text-align:center;">${k.target}</td>
+      <td style="text-align:center;font-weight:700;">${k.achieved}</td>
+      <td style="min-width:140px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="progress-bar-wrap" style="flex:1;">
+            <div class="progress-bar" style="width:${Math.min(pct,100)}%;background:${barColor};"></div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:${barColor};">${pct}%</span>
+        </div>
+      </td>
+      <td><span class="badge ${stCls}">${stLabel}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  REPORTS PAGE
+// ══════════════════════════════════════════════════════════════
+const REPORTS = [
+  {icon:'📊',title:'Executive Summary Report',desc:'High-level overview of all collaboration activities, partner counts, and KPI achievements.',formats:['PDF','Excel']},
+  {icon:'🏭',title:'Industry Partners Directory',desc:'Full list of registered industry partners with contact details and collaboration status.',formats:['PDF','Excel','CSV']},
+  {icon:'📋',title:'MoU/MoA Status Report',desc:'All agreements, expiry dates, renewal status, and action items.',formats:['PDF','Excel']},
+  {icon:'🤝',title:'Collaboration Activities Log',desc:'Comprehensive log of all workshops, visits, training, and seminars conducted.',formats:['PDF','Excel','CSV']},
+  {icon:'🏗️',title:'IOC Projects Report',desc:'Summary of Industry on Campus projects, values, progress, and student involvement.',formats:['PDF','Excel']},
+  {icon:'📈',title:'KPI Achievement Report',desc:'Annual KPI performance against targets with trend analysis and gap assessment.',formats:['PDF']},
+  {icon:'🎓',title:'Student Engagement Report',desc:'Student participation statistics across all collaboration programmes.',formats:['PDF','Excel']},
+];
+
+function renderReports() {
+  document.getElementById('report-grid').innerHTML = REPORTS.map(r => `
+    <div class="report-card">
+      <div class="report-icon">${r.icon}</div>
+      <h4>${r.title}</h4>
+      <p>${r.desc}</p>
+      <div class="report-actions">
+        ${r.formats.includes('PDF') ? `<button class="btn btn-primary btn-sm" onclick="downloadReport('${r.title}','PDF')">📄 PDF</button>` : ''}
+        ${r.formats.includes('Excel') ? `<button class="btn btn-secondary btn-sm" onclick="downloadReport('${r.title}','Excel')">📊 Excel</button>` : ''}
+        ${r.formats.includes('CSV') ? `<button class="btn btn-secondary btn-sm" onclick="downloadReport('${r.title}','CSV')">📑 CSV</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function downloadReport(title, format) {
+  if (format === 'CSV') {
+    exportCSV(title);
+    return;
+  }
+  toast(`Generating ${format} report: "${title}"…`, 'success');
+  setTimeout(() => {
+    if (format === 'PDF') generatePDF(title);
+    else toast(`${title} exported as ${format}.`, 'success');
+  }, 800);
+}
+
+function exportCSV(title) {
+  const partners = load('partners') || [];
+  const headers = ['ID','Company Name','Sector','Contact','Phone','Email','State','Status','MoU'];
+  const rows = partners.map(p => [p.id,p.name,p.sector,p.contact,p.phone,p.email,p.state,p.status,p.mou]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c||''}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CISEC_Partners_Export.csv';
+  a.click();
+  toast('CSV exported successfully.', 'success');
+}
+
+function generatePDF(title) {
+  const partners = load('partners') || [];
+  const mous = load('mous') || [];
+  const activities = load('activities') || [];
+  const ioc = load('ioc') || [];
+  const today = new Date().toLocaleDateString('en-MY', {year:'numeric',month:'long',day:'numeric'});
+  const totalStudents = activities.reduce((s,a)=>s+(+a.students||0),0);
+  const totalValue = ioc.reduce((s,i)=>s+(+i.value||0),0);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>CISEC Report – ${title}</title>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;color:#1a1a2e;padding:40px;max-width:900px;margin:0 auto;}
+    h1{color:#0a1628;border-bottom:3px solid #00b4b4;padding-bottom:12px;}
+    h2{color:#122040;margin-top:30px;font-size:16px;border-left:4px solid #00b4b4;padding-left:10px;}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+    th{background:#0a1628;color:white;padding:8px 10px;text-align:left;}
+    td{padding:7px 10px;border-bottom:1px solid #eee;}
+    tr:nth-child(even) td{background:#f8fafc;}
+    .kpi{display:flex;gap:20px;flex-wrap:wrap;margin:16px 0;}
+    .kp{background:#f0f8ff;border:1px solid #c0d8f0;border-radius:8px;padding:14px 20px;text-align:center;min-width:120px;}
+    .kp .v{font-size:26px;font-weight:800;color:#0a1628;}
+    .kp .l{font-size:11px;color:#666;margin-top:3px;}
+    .footer{margin-top:40px;text-align:center;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:14px;}
+  </style></head><body>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+    <div style="width:56px;height:56px;background:#0a1628;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:20px;">PBU</div>
+    <div><h1 style="border:none;margin:0;font-size:20px;">CISEC Industry Collaboration Dashboard</h1>
+    <p style="color:#666;margin:4px 0 0;">Politeknik Balik Pulau — ${title}</p></div>
+  </div>
+  <p style="color:#555;font-size:13px;">Generated: ${today}</p>
+  <h2>Executive Summary</h2>
+  <div class="kpi">
+    <div class="kp"><div class="v">${partners.length}</div><div class="l">Industry Partners</div></div>
+    <div class="kp"><div class="v">${mous.filter(m=>m.status==='Active').length}</div><div class="l">Active MoU/MoA</div></div>
+    <div class="kp"><div class="v">${activities.length}</div><div class="l">Activities</div></div>
+    <div class="kp"><div class="v">${totalStudents}</div><div class="l">Students Involved</div></div>
+    <div class="kp"><div class="v">RM${(totalValue/1000).toFixed(0)}K</div><div class="l">Contributions</div></div>
+  </div>
+  <h2>Industry Partners</h2>
+  <table><thead><tr><th>#</th><th>Company</th><th>Sector</th><th>State</th><th>Status</th><th>MoU</th></tr></thead>
+  <tbody>${partners.map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.sector}</td><td>${p.state}</td><td>${p.status}</td><td>${p.mou}</td></tr>`).join('')}</tbody></table>
+  <h2>MoU / MoA Agreements</h2>
+  <table><thead><tr><th>#</th><th>Title</th><th>Partner</th><th>Type</th><th>Expiry</th><th>Status</th></tr></thead>
+  <tbody>${mous.map((m,i)=>`<tr><td>${i+1}</td><td>${m.title}</td><td>${m.partner}</td><td>${m.type}</td><td>${m.expiry}</td><td>${m.status}</td></tr>`).join('')}</tbody></table>
+  <h2>Collaboration Activities</h2>
+  <table><thead><tr><th>#</th><th>Title</th><th>Type</th><th>Date</th><th>Students</th><th>Status</th></tr></thead>
+  <tbody>${activities.map((a,i)=>`<tr><td>${i+1}</td><td>${a.title}</td><td>${a.type}</td><td>${a.date}</td><td>${a.students}</td><td>${a.status}</td></tr>`).join('')}</tbody></table>
+  <div class="footer">CISEC Dashboard • Politeknik Balik Pulau • Confidential • ${today}</div>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ w.print(); }, 500);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  APP INIT
+// ══════════════════════════════════════════════════════════════
+function initApp() {
+  seedData();
+  renderOverview();
+  // Responsive menu button
+  function checkWidth() {
+    const mb = document.getElementById('menu-toggle');
+    mb.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+  }
+  window.addEventListener('resize', checkWidth);
+  checkWidth();
+  toast('Welcome to CISEC Dashboard, Admin!', 'success');
+}
+</script>
+</body>
+</html>
